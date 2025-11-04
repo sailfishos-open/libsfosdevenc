@@ -19,6 +19,7 @@ namespace DevEnc {
     Q_PROPERTY(QString id READ id NOTIFY idChanged)
     Q_PROPERTY(QString name READ name NOTIFY nameChanged)
     Q_PROPERTY(bool developer READ developer)
+    Q_PROPERTY(bool encryptionRequired READ encryptionRequired)
 
   public:
     Device(QObject *parent = nullptr);
@@ -33,6 +34,7 @@ namespace DevEnc {
     bool initialized() const { return m_state != StateReset; }
     QString name() const { return m_name; }
     bool developer() const { return m_developer; }
+    bool encryptionRequired() const { return m_encRequired; }
 
     // set device either to be encrypted or not
     Q_INVOKABLE bool setEncryption(bool encrypt);
@@ -93,6 +95,7 @@ namespace DevEnc {
     uint32_t m_size_mb;
     State m_state{StateReset};
     bool m_developer = false;
+    bool m_encRequired = false;
 
     // internal variables
     QString m_recovery_password;
