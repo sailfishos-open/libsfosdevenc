@@ -42,6 +42,8 @@ Device::Device(QSettings &settings, QObject *parent) : QObject(parent)
   m_device = settings.value("device").toString();
   m_mapper = settings.value("mapper").toString();
   m_mount = settings.value("mount").toString();
+  m_developer = settings.value("developer", false).toBool();
+  m_encRequired = settings.value("encryption_required", false).toBool();
 
   // check settings
   if (m_device.isEmpty())
