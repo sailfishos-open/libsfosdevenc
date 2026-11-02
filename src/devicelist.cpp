@@ -3,6 +3,8 @@
 
 #include <QSettings>
 
+#include <unistd.h>
+
 #include <QDebug>
 
 using namespace DevEnc;
@@ -32,6 +34,12 @@ DeviceList::DeviceList(QObject *parent) : QObject(parent)
       m_devices.append(p);
       device_config.endGroup();
     }
+
+  // After a rootfs reflash that kept userdata, config.ini is gone but the
+  // encrypted home is still there. Recognise it (only root can record that).
+  if (geteuid() == 0)
+    for (auto p: m_devices)
+      p->adoptExistingContainer();
 }
 
 DeviceList* DeviceList::instance()

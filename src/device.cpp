@@ -44,6 +44,7 @@ Device::Device(QSettings &settings, QObject *parent) : QObject(parent)
   m_mount = settings.value("mount").toString();
   m_developer = settings.value("developer", false).toBool();
   m_encRequired = settings.value("encryption_required", false).toBool();
+  m_adoptExisting = settings.value("adopt_existing", false).toBool();
 
   // check settings
   if (m_device.isEmpty())
@@ -114,12 +115,51 @@ bool Device::encrypted() const
   return true;
 }
 
+bool Device::hasLuksHeader() const
+{
+  if (!deviceAvailable() || !QFileInfo::exists(m_device))
+    return false;
+
+  struct crypt_device *cd;
+  if (crypt_init(&cd, m_device.toLatin1().data()) != 0)
+    return false;
+
+  bool luks = (crypt_load(cd, CRYPT_LUKS, NULL) == 0);
+  crypt_free(cd);
+  return luks;
+}
+
+bool Device::adoptExistingContainer()
+{
+  if (!m_adoptExisting || m_state != StateReset || !hasLuksHeader())
+    return false;
+
+  // persist first: if /etc is not writable (not root) the wizard must not
+  // believe the device was adopted
+  QSettings settings(INI_SETTINGS, QSettings::IniFormat);
+  settings.beginGroup(m_id);
+  settings.setValue("state", "encrypted");
+  settings.endGroup();
+  settings.sync();
+  if (settings.status() != QSettings::NoError)
+    return false;
+
+  m_state = StateEncrypted;
+  emit encryptedChanged();
+  emit initializedChanged();
+  return true;
+}
+
 bool Device::setEncryption(bool enc)
 {
   m_set_encryption_success = false;
 
   OPCHECK(!initialized(), "Set encryption can be called on noninitialized device only");
   OPCHECK(deviceAvailable(), "Device is not available");
+
+  // never destroy a container the porter asked us to keep
+  OPCHECK(!(m_adoptExisting && hasLuksHeader()),
+          "Refusing to overwrite an existing LUKS container (adopt_existing is set)");
 
   // preparation for files
   if (m_type == TypeFile)

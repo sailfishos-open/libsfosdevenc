@@ -35,6 +35,7 @@ namespace DevEnc {
     QString name() const { return m_name; }
     bool developer() const { return m_developer; }
     bool encryptionRequired() const { return m_encRequired; }
+    bool adoptExisting() const { return m_adoptExisting; }
 
     // set device either to be encrypted or not
     Q_INVOKABLE bool setEncryption(bool encrypt);
@@ -55,6 +56,16 @@ namespace DevEnc {
 
     // used by generator to create SystemD units
     bool createSystemDConfig(const QString &prefix);
+
+    // True if the backing store already holds a LUKS container. Unlike
+    // encrypted() it prints nothing when it does not.
+    bool hasLuksHeader() const;
+
+    // For devices with adopt_existing=true that have no state in config.ini
+    // (rootfs reflashed, userdata kept): if the backing store already is a
+    // LUKS container, record state=encrypted instead of letting the wizard
+    // reformat it. Returns true if the state was changed and saved.
+    bool adoptExistingContainer();
 
   signals:
     void deviceAvailableChanged();
@@ -96,6 +107,7 @@ namespace DevEnc {
     State m_state{StateReset};
     bool m_developer = false;
     bool m_encRequired = false;
+    bool m_adoptExisting = false;
 
     // internal variables
     QString m_recovery_password;
